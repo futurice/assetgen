@@ -3,6 +3,7 @@
 # Public Domain (-) 2004-2013 The Assetgen Authors.
 # See the Assetgen UNLICENSE file for details.
 
+from __future__ import absolute_import
 from assetgen.version import __release__
 from setuptools import setup
 

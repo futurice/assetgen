@@ -3,6 +3,8 @@
 
 """Asset generator for modern web app development."""
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
 import logging
@@ -23,9 +25,10 @@ from shutil import copy, rmtree
 from stat import ST_MTIME
 from tempfile import gettempdir, mkdtemp
 from time import sleep
+import six
 
 try:
-    from cPickle import dump, load
+    from six.moves.cPickle import dump, load
 except ImportError:
     from pickle import dump, load
 
@@ -121,7 +124,7 @@ def read(filename):
         return filename.text
     try:
         file = open(filename, 'rb')
-    except Exception, err:
+    except Exception as err:
         exit(err)
     content = file.read()
     file.close()
@@ -166,7 +169,7 @@ def do_with_stderr(args, **kwargs):
     ret, err, retcode = run_command(args, **kwargs)
     if retcode:
         if err.strip():
-            print err.strip()
+            print(err.strip())
         raise AppExit()
     return ret
 
@@ -502,7 +505,7 @@ register_handler('css', CSSAsset)
 # ------------------------------------------------------------------------------
 
 def extend_opts(xs, opt):
-    if isinstance(opt, basestring):
+    if isinstance(opt, six.string_types):
         xs.append(opt)
     else:
         xs.extend(opt)
@@ -520,7 +523,7 @@ def mismatch(s1, s2, source, existing):
 def set_uglify_defines(cmd, uglify_define):
     if not uglify_define:
         return
-    if isinstance(uglify_define, basestring):
+    if isinstance(uglify_define, six.string_types):
         cmd.extend(['--define', uglify_define])
     elif isinstance(uglify_define, list):
         cmd.extend(['--define', ';'.join(uglify_define)])
@@ -534,7 +537,7 @@ def set_uglify_defines(cmd, uglify_define):
                     val = 'false'
                 parts.append('%s=%s' % (key, val))
                 continue
-            if isinstance(val, basestring) and val.startswith('$'):
+            if isinstance(val, six.string_types) and val.startswith('$'):
                 _val = environ.get(val[1:], None)
                 if _val is None:
                     exit("env variable %s not set for use by uglify.define variable %s" % (val, key))
@@ -603,16 +606,16 @@ class JSAsset(Asset):
 
     def apply_template(self, source):
         if self.template_encoding != 'ascii':
-            source = unicode(source, self.template_encoding)
+            source = six.text_type(source, self.template_encoding)
         try:
             return self.template.render(jsliteral=jsliteral, source=source)
-        except Exception, err:
+        except Exception as err:
             traceback = RichTraceback()
             for (filename, lineno, function, line) in traceback.traceback:
-                print "File %s, line %s, in %s" % (filename, lineno, function)
-                print line, "\n"
-            print "%s: %s" % (str(traceback.error.__class__.__name__), traceback.error)
-            print
+                print("File %s, line %s, in %s" % (filename, lineno, function))
+                print(line, "\n")
+            print("%s: %s" % (str(traceback.error.__class__.__name__), traceback.error))
+            print()
             raise err
 
     def sourcemap(self, js, sm_path, sm_id, src_map):
@@ -820,7 +823,7 @@ class AssetGenRunner(object):
 
         if 'env' in config:
             env = config['env']
-            for key, val in env.iteritems():
+            for key, val in six.iteritems(env):
                 if '.' in key:
                     key, action = key.split('.', 1)
                     existing = environ.get(key)
@@ -889,7 +892,7 @@ class AssetGenRunner(object):
 
             for info in listing:
 
-                output, spec = info.items()[0]
+                output, spec = list(info.items())[0]
                 if 'type' in spec:
                     type = spec.pop('type')
                 else:
@@ -923,7 +926,7 @@ class AssetGenRunner(object):
                     _sources = [_sources]
 
                 _depends = spec.pop('depends', [])
-                if isinstance(_depends, basestring):
+                if isinstance(_depends, six.string_types):
                     _depends = [_depends]
 
                 depends = []
@@ -949,7 +952,7 @@ class AssetGenRunner(object):
                 else:
                     sources = []
                     for source in _sources:
-                        if isinstance(source, basestring):
+                        if isinstance(source, six.string_types):
                             sources.extend(expand_src(source))
                         else:
                             sources.append(Raw(source['raw']))
@@ -980,7 +983,7 @@ class AssetGenRunner(object):
         if 'prereq_data' in self.data:
             base_dir = self.base_dir
             prereq_data = self.data['prereq_data']
-            for key, paths in prereq_data.iteritems():
+            for key, paths in six.iteritems(prereq_data):
                 for path in paths:
                     full_path = join(base_dir, path)
                     log.info("Removing: %s" % path)
@@ -1203,7 +1206,7 @@ def main(argv=None):
     options, files = op.parse_args(argv)
 
     if options.version:
-        print 'assetgen %s' % __release__
+        print('assetgen %s' % __release__)
         sys.exit()
 
     if options.debug:
@@ -1220,7 +1223,7 @@ def main(argv=None):
     if extensions:
         scope = globals()
         for ext in extensions:
-            execfile(ext, scope, {})
+            exec(compile(open(ext, "rb").read(), ext, 'exec'), scope, {})
 
     if files:
         for file in files:
