@@ -34,8 +34,11 @@ setup(
         "PyYAML >= 3.10",
         "requests >= 1.2.0",
         "simplejson >= 3.2.0",
-        "tavutil >= 1.0.2"
         ],
+    dependency_links=[
+        ('https://github.com/vsobolmaven/assetgen/'
+         'tarball/master#egg=tavutil-1.0.2'),
+    ],
     keywords=[
         "assets", "javascript", "css", "coffeescript", "sass", "typescript",
         "less", "lessjs", "roole", "scss", "stylus", "source maps", "i18n"
