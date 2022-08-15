@@ -267,7 +267,7 @@ class FileChangeDetector(object):
         h = sha1()
         for file in files:
             hash, mtime = self._get_key(file)
-            h.update(str(hash))
+            h.update(str(hash).encode())
         return h.hexdigest()
 
     def get_old_mtime(self, file):
@@ -738,7 +738,7 @@ class JSAsset(Asset):
                     out(self.apply_template(read(source)))
                 else:
                     out(read(source))
-        self.uglify(''.join(output), get_spec)
+        self.uglify((''.join([each.decode() for each in output])).encode(), get_spec)
 
     def uglify(self, output, get_spec):
         uglify = get_spec('uglify')
@@ -775,7 +775,7 @@ class AssetGenRunner(object):
     def __init__(self, path, profile='default', force=None, checker=None, nuke=None):
 
         data_dir = join(
-            gettempdir(), 'assetgen-%s' % sha1(path).hexdigest()[:12]
+            gettempdir(), 'assetgen-%s' % sha1(path.encode()).hexdigest()[:12]
             )
 
         if not isdir(data_dir):
@@ -799,7 +799,7 @@ class AssetGenRunner(object):
             self.data = {}
 
         config_file = open(path, 'rb')
-        config_data = config_file.read() % os.environ
+        config_data = config_file.read().decode() % os.environ
         self.config = config = decode_yaml(config_data)
         config_file.close()
 
@@ -809,7 +809,7 @@ class AssetGenRunner(object):
         if not isinstance(config, dict):
             exit("Config at %s is not a dict mapping." % path)
 
-        for key in config.keys():
+        for key in list(config.keys()):
             if key.startswith('profile.'):
                 if key == 'profile.%s' % profile:
                     profile_conf = config.pop(key)
@@ -1001,14 +1001,19 @@ class AssetGenRunner(object):
             remove(data_path)
 
     def apply_hash(self, directory, filename, depends):
-        if self.prereq or not self.hashed:
+        if self.prereq:
             return None, None
 
-        digest = self.change_checker.hash_files(depends)
-        output_path = join(directory, self.output_template % {
-            'hash': digest,
-            'filename': filename
-            })
+        if self.hashed:
+            digest = self.change_checker.hash_files(depends)
+            output_path = join(directory, self.output_template % {
+                'hash': digest,
+                'filename': filename
+                })
+        else:
+            digest = None
+            output_path = join(directory, filename)
+
         return digest, output_path
 
     def emit(self, key, depends, path, content, extension=''):
@@ -1028,7 +1033,7 @@ class AssetGenRunner(object):
         if not isdir(directory):
             makedirs(directory)
         file = open(real_output_path, 'wb')
-        file.write(content)
+        file.write(content.encode())
         file.close()
         if self.prereq:
             self.prereq_data.setdefault(key, set()).add(path)
