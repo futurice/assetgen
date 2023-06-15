@@ -123,7 +123,7 @@ def read(filename):
     if isinstance(filename, Raw):
         return filename.text
     try:
-        file = open(filename, 'rb')
+        file = open(filename, 'r', encoding='utf-8')
     except Exception as err:
         exit(err)
     content = file.read()
@@ -267,7 +267,7 @@ class FileChangeDetector(object):
         h = sha1()
         for file in files:
             hash, mtime = self._get_key(file)
-            h.update(str(hash))
+            h.update(hash)
         return h.hexdigest()
 
     def get_old_mtime(self, file):
@@ -480,7 +480,8 @@ class CSSAsset(Asset):
                         out(read(tempcss))
                 else:
                     out(read(source))
-            output = ''.join(output)
+            output_str = [str(item) for item in output]
+            output = ''.join(output_str)
             if get_spec('embed') or self.embed_only:
                 if self.embed_only:
                     self.emit(
@@ -753,7 +754,7 @@ class JSAsset(Asset):
                 set_uglify_defines(cmd, uglify_define)
             with tempdir() as td:
                 path = join(td, basename(self.path))
-                f = open(path, 'wb')
+                f = open(path, 'w')
                 f.write(output)
                 f.close()
                 cmd.insert(1, path)
@@ -774,8 +775,9 @@ class AssetGenRunner(object):
 
     def __init__(self, path, profile='default', force=None, checker=None, nuke=None):
 
+        path_bytes = path.encode('utf-8')
         data_dir = join(
-            gettempdir(), 'assetgen-%s' % sha1(path).hexdigest()[:12]
+            gettempdir(), 'assetgen-%s' % sha1(path_bytes).hexdigest()[:12]
             )
 
         if not isdir(data_dir):
@@ -809,7 +811,7 @@ class AssetGenRunner(object):
         if not isinstance(config, dict):
             exit("Config at %s is not a dict mapping." % path)
 
-        for key in config.keys():
+        for key in list(config.keys()):
             if key.startswith('profile.'):
                 if key == 'profile.%s' % profile:
                     profile_conf = config.pop(key)
@@ -1027,7 +1029,7 @@ class AssetGenRunner(object):
             real_output_path = join(self.output_dir, output_path)
         if not isdir(directory):
             makedirs(directory)
-        file = open(real_output_path, 'wb')
+        file = open(real_output_path, 'w')
         file.write(content)
         file.close()
         if self.prereq:
@@ -1138,7 +1140,7 @@ class AssetGenRunner(object):
         manifest_path = self.manifest_path
         if manifest_path and (self.manifest_changed or self.manifest_force):
             log.info("Updated manifest: %s" % manifest_path)
-            manifest_file = open(manifest_path, 'wb')
+            manifest_file = open(manifest_path, 'w')
             encode_json(self.manifest, manifest_file)
             manifest_file.close()
         if change:
